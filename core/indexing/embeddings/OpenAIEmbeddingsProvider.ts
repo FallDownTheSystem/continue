@@ -2,12 +2,14 @@ import { Response } from "node-fetch";
 import { EmbeddingsProviderName, EmbedOptions } from "../../index.js";
 import { withExponentialBackoff } from "../../util/withExponentialBackoff.js";
 import BaseEmbeddingsProvider from "./BaseEmbeddingsProvider.js";
+import { countTokensAsync } from "../../llm/countTokens.js";
 
 class OpenAIEmbeddingsProvider extends BaseEmbeddingsProvider {
   static providerName: EmbeddingsProviderName = "openai";
   // https://platform.openai.com/docs/api-reference/embeddings/create is 2048
   // but Voyage is 128
   static maxBatchSize = 128;
+  static maxTokensPerBatch = 120_000;
 
   static defaultOptions: Partial<EmbedOptions> | undefined = {
     apiBase: "https://api.openai.com/v1/",
@@ -35,16 +37,28 @@ class OpenAIEmbeddingsProvider extends BaseEmbeddingsProvider {
   }
 
   async embed(chunks: string[]) {
-    const batchedChunks = [];
-    for (
-      let i = 0;
-      i < chunks.length;
-      i += OpenAIEmbeddingsProvider.maxBatchSize
-    ) {
-      batchedChunks.push(
-        chunks.slice(i, i + OpenAIEmbeddingsProvider.maxBatchSize),
-      );
+    const batchedChunks: string[][] = [];
+    let currentBatch: string[] = [];
+    let currentTokenCount = 0;
+    for (const chunk of chunks) {
+      const chunkTokenCount = await countTokensAsync(chunk);
+
+      if (currentTokenCount + chunkTokenCount > OpenAIEmbeddingsProvider.maxTokensPerBatch || currentBatch.length === OpenAIEmbeddingsProvider.maxBatchSize) {
+        // Current batch would exceed token limit, so push it and start a new one
+        batchedChunks.push(currentBatch);
+        currentBatch = [chunk];
+        currentTokenCount = chunkTokenCount;
+      } else {
+        // Add chunk to current batch
+        currentBatch.push(chunk);
+        currentTokenCount += chunkTokenCount;
+      }
     }
+    // Push the last batch if it's not empty
+    if (currentBatch.length > 0) {
+      batchedChunks.push(currentBatch);
+    }
+
     return (
       await Promise.all(
         batchedChunks.map(async (batch) => {

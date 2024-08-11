@@ -2,7 +2,7 @@ import { Chunk, ChunkWithoutID, IDE } from "../../index.js";
 import { countTokens, countTokensAsync } from "../../llm/countTokens.js";
 import { supportedLanguages } from "../../util/treeSitter.js";
 import { basicChunker } from "./basic.js";
-import { codeChunker } from "./code.js";
+import { codeChunker } from "./simplecode.js";
 
 export type ChunkDocumentParam = {
   filepath: string;
