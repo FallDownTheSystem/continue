@@ -320,7 +320,18 @@ export type ImageMessagePart = {
   imageUrl: { url: string };
 };
 
-export type MessagePart = TextMessagePart | ImageMessagePart;
+export type ThinkingMessagePart = {
+  type: "thinking";
+  thinking: string;
+  signature: string;
+};
+
+export type RedactedThinkingMessagePart = {
+  type: "redacted_thinking";
+  data: string;
+};
+
+export type MessagePart = TextMessagePart | ImageMessagePart | ThinkingMessagePart | RedactedThinkingMessagePart;
 
 export type MessageContent = string | MessagePart[];
 
@@ -917,11 +928,16 @@ export interface BaseCompletionOptions {
   prediction?: Prediction;
   tools?: Tool[];
   toolChoice?: ToolChoice;
+  thinking?: {
+    type: "enabled";
+    budget_tokens: number;
+  };
 }
 
 export interface ModelCapability {
   uploadImage?: boolean;
   tools?: boolean;
+  thinking?: boolean;
 }
 
 export interface ModelDescription {

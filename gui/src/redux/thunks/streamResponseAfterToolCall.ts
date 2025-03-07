@@ -38,9 +38,12 @@ export const streamResponseAfterToolCall = createAsyncThunk<
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
+        // Create tool message with proper content format
+        // This ensures compatibility with thinking tokens
+        const toolResultContent = renderContextItems(toolOutput);
         const newMessage: ChatMessage = {
           role: "tool",
-          content: renderContextItems(toolOutput),
+          content: toolResultContent || " ", // Use space to avoid empty content errors
           toolCallId,
         };
         dispatch(streamUpdate([newMessage]));

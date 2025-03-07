@@ -83,7 +83,7 @@ export function toChatMessage(
                 },
               };
             }
-            return part;
+            return part as TextMessagePart;
           }),
     };
   }

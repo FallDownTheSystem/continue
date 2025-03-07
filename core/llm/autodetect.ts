@@ -379,5 +379,40 @@ export {
   autodetectTemplateType,
   llmCanGenerateInParallel,
   modelSupportsImages,
-  modelSupportsTools,
+  modelSupportsTools
 };
+
+
+const PROVIDER_SUPPORTS_THINKING: string[] = [
+  "anthropic",
+];
+
+const MODEL_SUPPORTS_THINKING: string[] = [
+  "claude-3-7-sonnet-20250219",
+  "claude-3-7-sonnet-latest",
+];
+
+/**
+ * Determines if a model supports thinking tokens
+ */
+export function modelSupportsThinking(
+  provider: string,
+  model: string,
+  title: string | undefined,
+  capabilities: ModelCapability | undefined,
+): boolean {
+  if (capabilities?.thinking !== undefined) {
+    return capabilities.thinking;
+  }
+
+  if (!PROVIDER_SUPPORTS_THINKING.includes(provider)) {
+    return false;
+  }
+
+  const lower = model.toLowerCase();
+  return MODEL_SUPPORTS_THINKING.some(
+    (modelName) => lower.includes(modelName) || title?.includes(modelName)
+  );
+}
+
+

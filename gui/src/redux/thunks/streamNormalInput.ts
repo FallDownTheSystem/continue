@@ -1,5 +1,6 @@
 import { createAsyncThunk, unwrapResult } from "@reduxjs/toolkit";
-import { ChatMessage, PromptLog } from "core";
+import { ChatMessage } from "core";
+import { modelSupportsThinking, modelSupportsTools } from "core/llm/autodetect";
 import { selectCurrentToolCall } from "../selectors/selectCurrentToolCall";
 import { selectDefaultModel } from "../slices/configSlice";
 import {
@@ -10,7 +11,6 @@ import {
 } from "../slices/sessionSlice";
 import { ThunkApiType } from "../store";
 import { callTool } from "./callTool";
-import { modelSupportsTools } from "core/llm/autodetect";
 
 export const streamNormalInput = createAsyncThunk<
   void,
@@ -32,18 +32,32 @@ export const streamNormalInput = createAsyncThunk<
     modelSupportsTools(defaultModel) &&
     state.session.mode === "chat";
 
+  // Prepare options
+  const options: any = {};
+  
+  // Add tools if supported
+  if (includeTools) {
+    options.tools = state.config.config.tools.filter(
+      (tool) => toolSettings[tool.function.name] !== "disabled",
+    );
+  }
+  
+  // Add thinking if configured in the model's config
+  if (modelSupportsThinking(
+    defaultModel.provider,
+    defaultModel.model,
+    defaultModel.title,
+    defaultModel.capabilities
+  ) && defaultModel.completionOptions?.thinking) {
+    options.thinking = defaultModel.completionOptions.thinking;
+  }
+  
   // Send request
   const gen = extra.ideMessenger.llmStreamChat(
     defaultModel.title,
     streamAborter.signal,
     messages,
-    includeTools
-      ? {
-          tools: state.config.config.tools.filter(
-            (tool) => toolSettings[tool.function.name] !== "disabled",
-          ),
-        }
-      : {},
+    options,
   );
 
   // Stream response

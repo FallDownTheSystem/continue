@@ -67,6 +67,7 @@ export function constructMessages(
         content: CANCELED_TOOL_CALL_MESSAGE,
       });
     } else {
+      // Other message types (tool, etc)
       msgs.push(historyItem.message);
     }
   }
