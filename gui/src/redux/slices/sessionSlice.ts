@@ -18,6 +18,7 @@ import {
   PromptLog,
   Session,
   SessionMetadata,
+  ThinkingMessagePart,
   ToolCallDelta,
   ToolCallState,
 } from "core";
@@ -375,7 +376,7 @@ export const sessionSlice = createSlice({
                       if (Array.isArray(lastMessage.content)) {
                         let thinkingPart = lastMessage.content.find(p => p.type === "thinking");
                         if (thinkingPart) {
-                          thinkingPart.signature = part.signature;
+                          (thinkingPart as ThinkingMessagePart).signature = part.signature;
                         }
                         else {
                           lastMessage.content.push(part);
@@ -393,7 +394,7 @@ export const sessionSlice = createSlice({
                         // Append thinking delta to the last thinking part
                         let thinkingPart = lastMessage.content.find(p => p.type === "thinking");
                         if (thinkingPart) {
-                          thinkingPart.thinking += part.thinking;
+                          (thinkingPart as ThinkingMessagePart).thinking += part.thinking;
                         }
                         else {
                       lastMessage.content.push(part);
