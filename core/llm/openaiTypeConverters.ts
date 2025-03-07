@@ -17,6 +17,23 @@ import {
   TextMessagePart,
 } from "..";
 
+// Extend OpenAI API types to support DeepSeek reasoning_content field
+interface DeepSeekDelta {
+  reasoning_content?: string;
+  content?: string;
+  role?: string;
+  tool_calls?: any[];
+}
+
+interface DeepSeekChatCompletionChunk extends Omit<ChatCompletionChunk, "choices"> {
+  choices?: Array<{
+    delta: DeepSeekDelta;
+    index: number;
+    finish_reason: string | null;
+    logprobs?: object | null;
+  }>;
+}
+
 export function toChatMessage(
   message: ChatMessage,
 ): ChatCompletionMessageParam {
@@ -41,8 +58,8 @@ export function toChatMessage(
         typeof message.content === "string"
           ? message.content || " " // LM Studio (and other providers) don't accept empty content
           : message.content
-              .filter((part) => part.type === "text")
-              .map((part) => part as TextMessagePart), // can remove with newer typescript version
+            .filter((part) => part.type === "text")
+            .map((part) => part as TextMessagePart), // can remove with newer typescript version
     };
 
     if (message.toolCalls) {
@@ -71,20 +88,20 @@ export function toChatMessage(
       role: "user",
       content: !message.content.some((item) => item.type !== "text")
         ? message.content
-            .map((item) => (item as TextMessagePart).text)
-            .join("") || " "
+          .map((item) => (item as TextMessagePart).text)
+          .join("") || " "
         : message.content.map((part) => {
-            if (part.type === "imageUrl") {
-              return {
-                type: "image_url" as const,
-                image_url: {
-                  url: part.imageUrl.url,
-                  detail: "auto" as const,
-                },
-              };
-            }
-            return part as TextMessagePart;
-          }),
+          if (part.type === "imageUrl") {
+            return {
+              type: "image_url" as const,
+              image_url: {
+                url: part.imageUrl.url,
+                detail: "auto" as const,
+              },
+            };
+          }
+          return part as TextMessagePart;
+        }),
     };
   }
 }
@@ -176,11 +193,18 @@ export function fromChatResponse(response: ChatCompletion): ChatMessage {
 }
 
 export function fromChatCompletionChunk(
-  chunk: ChatCompletionChunk,
+  chunk: ChatCompletionChunk | DeepSeekChatCompletionChunk,
 ): ChatMessage | undefined {
-  const delta = chunk.choices?.[0]?.delta;
+  const delta = chunk.choices?.[0]?.delta as DeepSeekDelta;
 
-  if (delta?.content) {
+  // Handle reasoning_content (for DeepSeek and compatible models)
+  if (delta?.reasoning_content) {
+    return {
+      role: "assistant",
+      content: "",
+      reasoning_content: delta.reasoning_content,
+    };
+  } else if (delta?.content) {
     return {
       role: "assistant",
       content: delta.content,

@@ -464,6 +464,12 @@ export const sessionSlice = createSlice({
                   lastMessage.content += messageContent;
                 }
               } else {
+                // Reasoning is streamed before the regular content, so if we had any, end it.
+                if (lastItem.reasoning) {
+                  lastItem.reasoning.active = false;
+                  lastItem.reasoning.endAt = Date.now();
+                }
+
                 // Handle string content or legacy format
                 const messageContent = renderChatMessage(message);
 
@@ -517,6 +523,19 @@ export const sessionSlice = createSlice({
                     lastItem.reasoning.text = afterThinkTag;
                   }
                 }
+              }
+            } else if (message.role === "assistant" && message.reasoning_content) {
+              // Initialize reasoning if it doesn't exist
+              if (!lastItem.reasoning) {
+                lastItem.reasoning = {
+                  startAt: Date.now(),
+                  active: true,
+                  text: message.reasoning_content,
+                  endAt: undefined,
+                };
+              } else {
+                // Append to existing reasoning
+                lastItem.reasoning.text += message.reasoning_content;
               }
             } else if (
               message.role === "assistant" &&

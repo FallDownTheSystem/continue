@@ -765,16 +765,16 @@ export abstract class BaseLLM implements ILLM {
     let completion = "";
 
     try {
-      if (this.templateMessages) {
-        for await (const chunk of this._streamComplete(
-          prompt,
-          signal,
-          completionOptions,
-        )) {
-          completion += chunk;
-          yield { role: "assistant", content: chunk };
-        }
-      } else {
+      // if (this.templateMessages) {
+      //   for await (const chunk of this._streamComplete(
+      //     prompt,
+      //     signal,
+      //     completionOptions,
+      //   )) {
+      //     completion += chunk;
+      //     yield { role: "assistant", content: chunk };
+      //   }
+      // } else {
         if (this.shouldUseOpenAIAdapter("streamChat") && this.openaiAdapter) {
           let body = toChatBody(messages, completionOptions);
           body = this.modifyChatBody(body);
@@ -814,7 +814,7 @@ export abstract class BaseLLM implements ILLM {
             yield chunk;
           }
         }
-      }
+      // }
     } catch (error) {
       console.log(error);
       throw error;
